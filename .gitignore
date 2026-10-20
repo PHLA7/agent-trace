@@ -1,0 +1,12 @@
+# Recorded traces are local user data, never part of the repository. Hermes' own capability probe
+# writes data/status.json just by loading the plugin, so this must be ignored before the first commit.
+data/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+node_modules/
+
+.DS_Store
+Thumbs.db

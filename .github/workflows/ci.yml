@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pytest fastapi
+
+      # The plugin root keeps its __init__.py (Hermes' loader requires it), so pytest must run with
+      # tests/ as its rootdir; tests/pytest.ini makes that happen for `pytest tests`.
+      - name: Unit tests
+        run: python -m pytest tests
+
+      # The desktop half is plain ESM loaded uncompiled. Parse it rather than trust it.
+      - name: Desktop plugin parses as ESM
+        if: ${{ hashFiles('desktop/plugin.js') != '' }}
+        shell: bash
+        run: |
+          cp desktop/plugin.js "$RUNNER_TEMP/plugin.mjs"
+          node --check "$RUNNER_TEMP/plugin.mjs"
+          echo "desktop/plugin.js parses as ESM"
+
+      # Admission rules the catalog CI also checks, run here so a PR cannot surprise us.
+      - name: Declared hooks match register() (admission rule 6)
+        run: python tests/check_declared_hooks.py
+
+      - name: Desktop half stays inside the plugin SDK (admission rule 8)
+        run: python tests/check_desktop_surface.py

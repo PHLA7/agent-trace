@@ -1,0 +1,9 @@
+{
+  "name": "agent-trace",
+  "label": "Agent Trace",
+  "description": "Execution graph for Hermes turns: the turn, LLM attempts, tool calls, delegated subagents, approvals and compaction, with timings, tokens and per-branch cost.",
+  "icon": "Graph",
+  "version": "0.1.0",
+  "tab": { "hidden": true },
+  "api": "plugin_api.py"
+}
