@@ -1,0 +1,52 @@
+# Draft plugin-catalog entry.
+#
+# This is NOT installed by anything here. To submit, copy it to
+# `plugin-catalog/agent-trace.yaml` in NousResearch/hermes-agent and open a PR,
+# after re-pinning `sha` to the exact commit a reviewer is asked to read.
+# Admission requires one file, one pull request, and a human merge.
+#
+# Deliberately omitted for now, each for a reason:
+#   requires_hermes  — the plugin depends on the `hermes.observer.v1` telemetry contract, which
+#                      v0.22.2 ships. Which release introduced it has not been verified, and a
+#                      guessed floor is worse than no floor. Set it once that is confirmed.
+#   screenshots      — the plugin's UI has not yet been exercised in a running Desktop app.
+#                      Generate them after that, and pin each URL to this entry's commit.
+
+name: agent-trace
+title: Agent Trace
+description: >-
+  Renders each agent turn as an interactive span graph: every provider API attempt, every tool
+  call, delegated subagents nested with their own calls, approval and human-input prompts, and
+  context compaction, with timings, token counts and per-branch cost. The app already streams tool
+  output inline; this is the tree, the per-branch rollup and the history for turns that ran while
+  the window was closed. Records locally only, with no network egress of any kind. Sanitized
+  capture by default, metadata-only mode available for shared machines.
+repo: https://github.com/PHLA7/agent-trace
+sha: c2fe390654219cd7fad6a60c21dcd691df41a097
+tier: community
+category: desktop
+maintainer: PHLA7
+version: "0.1.0"
+capabilities:
+  # Must match `register()` at the pinned commit exactly; admission rule 6 fails the entry
+  # otherwise. Generated from recorder.hook_names() and checked in CI by
+  # tests/check_declared_hooks.py, which reads the same list out of plugin.yaml.
+  hooks:
+    - pre_llm_call
+    - post_llm_call
+    - pre_tool_call
+    - post_tool_call
+    - pre_api_request
+    - post_api_request
+    - api_request_error
+    - subagent_start
+    - subagent_stop
+    - pre_approval_request
+    - post_approval_response
+    - on_human_input_request
+    - on_human_input_resolved
+    - post_compaction
+    - on_session_end
+  env: []        # nothing required: every AGENT_TRACE_* variable is an optional override
+  tools: []
+  middleware: []
