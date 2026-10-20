@@ -123,7 +123,7 @@ const STALE_AFTER_MS = 60_000
 const MAX_SPANS_PER_TRACE = 4000
 const MAX_LAYOUT_ROWS = 2000
 
-/** Backend frame types pushed over `WS /events` (SPEC section 6). */
+/** Backend frame types, as emitted by the `/live` cursor poll (SPEC section 6). */
 const FRAME_TYPES = ['trace.start', 'trace.end', 'span.start', 'span.end']
 
 function isObj(v) {
