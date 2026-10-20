@@ -131,14 +131,22 @@ Two decisions worth calling out:
 ## Development
 
 ```bash
-pytest tests                          # 19 tests, no fixtures mocked
-python tests/check_declared_hooks.py  # admission rule 6: manifest matches register()
+pytest tests                              # 32 tests, no fixtures mocked
+python tests/check_declared_hooks.py      # admission rule 6: manifest matches register()
+python tests/check_desktop_surface.py     # admission rule 8: the SDK surface lint
+node tests/desktop_smoke.mjs              # loads the desktop half the way the app does, registers it
 hermes plugins install ./agent-trace --force
 ```
 
 `pytest` must run with `tests/` as its rootdir (the config in `tests/pytest.ini` arranges that).
 The plugin root has to keep its `__init__.py` for Hermes' loader, and a rootdir containing
 `__init__.py` makes pytest try to import that file as a package.
+
+`desktop_smoke.mjs` is the closest thing to running the plugin without the app: it rewrites the
+three allowed specifiers to local stubs, exactly as `src/contrib/runtime-loader.ts` does, imports
+the module, and calls `register(ctx)` with a recording context. It catches what `node --check`
+cannot — a named import the SDK does not export, a `register()` that throws, and a contribution set
+or i18n ordering that does not match the spec.
 
 ## License
 

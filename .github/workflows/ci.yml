@@ -36,6 +36,11 @@ jobs:
           node --check "$RUNNER_TEMP/plugin.mjs"
           echo "desktop/plugin.js parses as ESM"
 
+      # Same rewrite the app's runtime loader does (bare specifiers -> module URLs), then register().
+      - name: Desktop half evaluates and registers
+        if: ${{ hashFiles('desktop/plugin.js') != '' }}
+        run: node tests/desktop_smoke.mjs
+
       # Admission rules the catalog CI also checks, run here so a PR cannot surprise us.
       - name: Declared hooks match register() (admission rule 6)
         run: python tests/check_declared_hooks.py
