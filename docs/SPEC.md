@@ -19,6 +19,7 @@ Contract version recorded on every trace: `telemetry_schema_version = "hermes.ob
   "model": "…",                      // from the first pre_api_request
   "provider": "…",
   "user_message": "…",               // sanitized, truncated
+  "seq": 17,                         // monotonic creation counter, see below
   "started_at": 1750000000.123,      // epoch seconds, float
   "ended_at": 1750000012.456,
   "duration_ms": 12333,
@@ -63,6 +64,10 @@ Rules that hold everywhere:
 - `depth` is computed by the writer, never sent by the producer.
 - `cost_usd` is `null` unless a pricing table resolves the model. Never invent `0.0` for an
   unknown model; a null is honest, a zero is a lie.
+- `seq` is the recorder's monotonic creation counter. It exists because `started_at` alone cannot
+  order traces: a platform whose clock ticks coarsely (Windows, ~15.6 ms) hands several traces the
+  same timestamp, and "newest first" then falls back to whatever order the shard files were read
+  in. Any newest-first listing orders by `(started_at, seq, id)` descending.
 
 ## 2. Span id scheme
 

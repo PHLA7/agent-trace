@@ -236,6 +236,10 @@ class Trace:
     capture_mode: str = DEFAULT_CAPTURE_MODE
     root: str = ""
     stale: bool = False
+    # Monotonic creation counter. A tiebreaker, not a clock: a platform with a coarse
+    # time.time() (Windows ticks at ~15.6 ms) can give several traces the same started_at, and
+    # "newest first" must still be deterministic.
+    seq: int = 0
     totals: dict[str, Any] = field(default_factory=lambda: {
         "input_tokens": 0, "output_tokens": 0, "cache_read_tokens": 0,
         "cache_write_tokens": 0, "reasoning_tokens": 0, "cost_usd": None,
@@ -271,6 +275,7 @@ class Recorder:
         self._subscribers: list[queue.Queue] = []
         self.spans_recorded = 0
         self.dropped = 0
+        self._seq = 0
         self._stopping = threading.Event()
         self._writer = threading.Thread(target=self._drain, name="agent-trace-writer", daemon=True)
         self._writer.start()
@@ -446,6 +451,8 @@ class Recorder:
                 id=f"tr_{key}", session_id=session_id or "", turn_id=turn_id or "",
                 started_at=self._now(), capture_mode=self.capture_mode, root=f"sp_{key}",
             )
+            self._seq += 1
+            trace.seq = self._seq
             self._traces[key] = trace
             self._session_turn[session_id or ""] = key
             root = Span(id=trace.root, trace_id=trace.id, kind="turn", name="turn",

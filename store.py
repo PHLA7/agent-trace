@@ -21,8 +21,21 @@ from typing import Any, Iterator, Optional
 
 TRACE_SUMMARY_KEYS = (
     "id", "session_id", "turn_id", "platform", "model", "provider", "started_at", "ended_at",
-    "duration_ms", "status", "totals", "capture_mode", "user_message",
+    "duration_ms", "status", "totals", "capture_mode", "user_message", "seq",
 )
+
+
+def _trace_order_key(record: dict) -> tuple[float, int, str]:
+    """Newest-first ordering that stays deterministic across a coarse clock.
+
+    ``started_at`` alone is not enough: platforms with low ``time.time()`` resolution (Windows ticks
+    at ~15.6 ms) hand several traces the same value, and then the list order falls back to whatever
+    order the shard files happened to be read in. ``seq`` is the recorder's monotonic creation
+    counter, so it reproduces real creation order; ``id`` is a last resort for a record written
+    before ``seq`` existed.
+    """
+    return (float(record.get("started_at") or 0), int(record.get("seq") or 0),
+            str(record.get("id") or ""))
 
 
 def _iter_lines(path: Path, *, start: int = 0) -> Iterator[tuple[dict, int]]:
@@ -81,7 +94,7 @@ def list_traces(data_dir: Path | str, *, session_id: Optional[str] = None,
         if since is not None and float(record.get("started_at") or 0) < float(since):
             continue
         out.append({k: record.get(k) for k in TRACE_SUMMARY_KEYS if k in record})
-    out.sort(key=lambda r: float(r.get("started_at") or 0), reverse=True)
+    out.sort(key=_trace_order_key, reverse=True)
     return out[: max(1, int(limit))]
 
 

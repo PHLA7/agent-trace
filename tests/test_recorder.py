@@ -326,9 +326,9 @@ def test_store_lists_loads_and_clears(rec: rec_mod.Recorder, tmp_path: Path):
     rec.on_post_llm_call(session_id="other", turn_id="tt3", assistant_response="r")
     drain(rec)
 
-    everything = store_mod.list_traces(tmp_path)
-    assert len(everything) == 3
-    assert everything == sorted(everything, key=lambda t: t["started_at"], reverse=True)
+    all_traces = store_mod.list_traces(tmp_path)
+    assert len(all_traces) == 3
+    assert all_traces == sorted(all_traces, key=store_mod._trace_order_key, reverse=True)
 
     one_session = store_mod.list_traces(tmp_path, session_id="sl")
     assert {t["turn_id"] for t in one_session} == {"tt1", "tt2"}
@@ -427,3 +427,35 @@ def test_cost_is_null_and_the_core_import_skippable(monkeypatch):
     for value in ("0", "false", "no", "OFF", " off "):
         monkeypatch.setenv("AGENT_TRACE_PRICING", value)
         assert rec_mod._pricing_enabled() is False, value
+
+
+def test_listing_is_deterministic_when_the_clock_has_coarse_resolution(monkeypatch, tmp_path: Path):
+    """Regression: Windows' time.time() ticks at ~15.6 ms, so traces can share a started_at.
+
+    Without a monotonic tiebreaker the newest-first list falls back to shard read order, which is
+    not creation order: the same three traces listed tt1 first. The Windows CI job caught this.
+    """
+    frozen = 1_700_000_000.0
+    monkeypatch.setattr(rec_mod.Recorder, "_now", lambda self: frozen)
+    rec = rec_mod.Recorder(tmp_path)
+    for n in (1, 2, 3):
+        rec.on_pre_llm_call(session_id=f"sd{n}", turn_id=f"td{n}", user_message="x")
+        rec.on_post_llm_call(session_id=f"sd{n}", turn_id=f"td{n}", assistant_response="y")
+    drain(rec)
+    rec.shutdown()
+
+    listed = store_mod.list_traces(tmp_path)
+    assert {t["started_at"] for t in listed} == {frozen}, "the clock really did tie"
+    assert [t["turn_id"] for t in listed] == ["td3", "td2", "td1"]
+    assert [t["seq"] for t in listed] == [3, 2, 1]
+    assert store_mod.list_traces(tmp_path, limit=1)[0]["turn_id"] == "td3"
+
+
+def test_trace_order_key_prefers_seq_over_id(monkeypatch):
+    """The tiebreaker must reflect creation order, not an id sort."""
+    tied = {"started_at": 5.0}
+    assert store_mod._trace_order_key({**tied, "seq": 2, "id": "tr_a"}) > \
+        store_mod._trace_order_key({**tied, "seq": 1, "id": "tr_z"})
+    # A record written before seq existed still orders deterministically by id.
+    assert store_mod._trace_order_key({**tied, "id": "tr_b"}) > \
+        store_mod._trace_order_key({**tied, "id": "tr_a"})
