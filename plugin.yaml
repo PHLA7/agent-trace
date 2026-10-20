@@ -5,7 +5,7 @@ description: >-
   every tool call, delegated subagents (nested, with their own tool calls), approval and
   human-input prompts, and context compaction, with timings, token counts and per-branch cost.
   Companion to the desktop app's live tool rows: this is the tree nobody shows you. Records
-  locally only, with no network egress of any kind. Sanitized capture by default; metadata-only
+  locally only, with no network egress of its own. Sanitized capture by default; metadata-only
   mode available for shared machines.
 author: "Pedro Abreu (PHLA7)"
 provides_hooks:

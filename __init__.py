@@ -6,8 +6,9 @@ through the backend routes in ``dashboard/plugin_api.py``.
 
 Observer-only by design. Nothing here changes agent behaviour, and no hook return value is used.
 
-Recording is local-only: this plugin makes no network requests of any kind, has no credentials, and
-writes nothing outside its own data directory.
+Recording is local-only: this plugin makes no requests of its own, has no credentials, and writes
+nothing outside its own data directory. Its one indirect network path is cost estimation, which goes
+through Hermes' own pricing lookup (see PRIVACY.md); ``AGENT_TRACE_PRICING=off`` removes it.
 """
 
 from __future__ import annotations

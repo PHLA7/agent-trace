@@ -5,6 +5,26 @@
 # after re-pinning `sha` to the exact commit a reviewer is asked to read.
 # Admission requires one file, one pull request, and a human merge.
 #
+# Rule 13 disclosure (paste into the PR description verbatim, in addition to the summary):
+#
+#   - No network calls of its own. The plugin opens no sockets and has no export, upload, account or
+#     endpoint. Nothing leaves the machine.
+#   - One indirect path: cost estimation calls Hermes' own agent.usage_pricing (the same path
+#     `hermes logs` uses). That code can refresh a model-pricing cache over HTTPS from the model
+#     provider when its on-disk cache is over an hour old. No conversation content is sent; the
+#     request is for a public price list. AGENT_TRACE_PRICING=off removes the path entirely and
+#     cost_usd reports null.
+#   - Reads outside its own data: none. The plugin reads and writes only <plugin dir>/data/.
+#   - Shell commands: none. Subprocesses: none. Background process: one daemon writer thread that
+#     drains an in-process queue and exits with the process; no subprocess, no service, no timer
+#     outside the host's own plugin API.
+#   - Stored credentials: none. No requires_env, no config_schema secrets, no vault access.
+#   - Private core import (rule 9 warning): agent.usage_pricing, for the cost figures above.
+#     Disclosed rather than hidden; the official langfuse plugin makes the same import.
+#   - Records tool arguments and results to local disk. Sanitized by default (pattern redaction then
+#     truncation), metadata-only mode available, retention capped at 200 traces / 50 MB, and a
+#     clear action in Settings. See the repository's PRIVACY.md.
+#
 # Deliberately omitted for now, each for a reason:
 #   requires_hermes  — the plugin depends on the `hermes.observer.v1` telemetry contract, which
 #                      v0.22.2 ships. Which release introduced it has not been verified, and a
@@ -19,7 +39,7 @@ description: >-
   call, delegated subagents nested with their own calls, approval and human-input prompts, and
   context compaction, with timings, token counts and per-branch cost. The app already streams tool
   output inline; this is the tree, the per-branch rollup and the history for turns that ran while
-  the window was closed. Records locally only, with no network egress of any kind. Sanitized
+  the window was closed. Records locally only, with no network egress of its own. Sanitized
   capture by default, metadata-only mode available for shared machines.
 repo: https://github.com/PHLA7/agent-trace
 sha: c2fe390654219cd7fad6a60c21dcd691df41a097

@@ -43,8 +43,17 @@ opt-in and off until you flip it. Finally run ⌘K → **Reload desktop plugins*
 
 ## Privacy
 
-**No network access of any kind.** No export, no upload, no account, no endpoint to configure.
-Everything is written to the plugin's own directory on your machine and nowhere else.
+**The plugin opens no sockets and makes no requests of its own.** No export, no upload, no account,
+no endpoint to configure. Everything is written to the plugin's own directory on your machine and
+nowhere else.
+
+One indirect path can cause outbound traffic, and it is worth knowing about rather than discovering:
+cost estimation calls Hermes' **own** pricing code (`agent.usage_pricing`), the same path
+`hermes logs` uses. That code refreshes a model-pricing cache from the model provider over HTTPS
+(for an OpenRouter route, a `GET` to `openrouter.ai/models`) when its on-disk cache is more than an
+hour old, and caches the result. So at most roughly one request per hour, from Hermes, not from this
+plugin, and only when the provider does not already report the cost. `AGENT_TRACE_PRICING=off`
+removes the path entirely; `cost_usd` then reports as `null`.
 
 `sanitized` capture is the default: content is redacted then truncated. `metadata` mode stores no
 content at all, only structure and counts. Read [PRIVACY.md](PRIVACY.md) before installing if you

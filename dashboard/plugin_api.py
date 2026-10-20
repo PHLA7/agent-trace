@@ -7,8 +7,8 @@ that module is pure stdlib with no dependency on this package.
 The backend never writes: the recorder owns the store. Two consequences worth stating plainly,
 because they are what make this half easy to review:
 
-- No credentials, no env reads, no network. Every route reads local files under the plugin's own
-  data directory.
+- No credentials, no env reads, no network calls of its own. Every route reads local files under the
+  plugin's own data directory.
 - One route mutates anything (``DELETE /traces``), and it requires an explicit ``confirm=true``.
 """
 

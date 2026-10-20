@@ -27,13 +27,32 @@ That is the only path the plugin writes. It does not write to your home director
 
 ## What does NOT happen
 
-- **No network access of any kind.** This plugin makes no HTTP requests, opens no sockets, and has
-  no export, upload or telemetry feature. There is no endpoint to configure and no account to
-  create. If you want traces in an external system, use the official `langfuse` plugin instead,
-  which is built for exactly that.
+- **The plugin makes no requests of its own.** No HTTP call, no socket, no export, upload or
+  telemetry feature. There is no endpoint to configure and no account to create. If you want traces
+  in an external system, use the official `langfuse` plugin instead, which is built for exactly that.
 - **No credentials.** It declares no `requires_env`, reads no `.env` file, reads no Hermes
   `auth.json`, and never touches the credential vault. Nothing here signs in to anything.
 - **No retention outside your machine.** Nothing is copied anywhere.
+
+## The one indirect path to the network
+
+Cost estimation calls Hermes' own pricing code (`agent.usage_pricing.estimate_usage_cost`), the same
+path `hermes logs` uses to print a cost. That code, not this plugin, can issue an HTTPS request: it
+refreshes a model-pricing cache from the model provider when its on-disk cache is more than an hour
+old (for an OpenRouter route, a `GET` to `openrouter.ai/models`; Hermes stores the result under its
+own cache directory). Nothing about your conversation is sent. The request is for a public price
+list.
+
+Order of events, so the bound is clear:
+
+1. Hermes' provider profile reports a cost already present in the response. Then no request happens
+   at all, for any provider that returns cost per call.
+2. Otherwise Hermes looks up a bundled price snapshot.
+3. Only if that also misses does the cache refresh logic run, and only when its cache is over an
+   hour old.
+
+**Set `AGENT_TRACE_PRICING=off` and the plugin touches no network path whatsoever.** `cost_usd` then
+reports as `null`, which is the same value it reports for any model Hermes has no price for.
 
 ## Capture modes
 
